@@ -1,0 +1,40 @@
+--- a/src/menus/file_select.c
++++ b/src/menus/file_select.c
+@@ -3176,6 +3176,10 @@
+  * 
+  * @return u8 bool, leaving
+  */
++#ifdef PORT_NATIVE
++extern void NesRun(void);   /* src/nes_run.c: emulador de NES do port (o bootloader do GBA nao roda no PS2) */
++static u16 sPortNesSavedDispcnt;
++#endif
+ static u8 OptionsNesMetroidHandler(void)
+ {
+     u8 i;
+@@ -3235,6 +3239,9 @@
+                 FILE_SELECT_DATA.bldcnt = 0;
+                 gWrittenToBldy_NonGameplay = 0;
+ 
++#ifdef PORT_NATIVE
++                sPortNesSavedDispcnt = FILE_SELECT_DATA.dispcnt;
++#endif
+                 // Black out screen
+                 FILE_SELECT_DATA.dispcnt &= ~(DCNT_BG0 | DCNT_BG1 | DCNT_BG2 | DCNT_BG3 | DCNT_OBJ);
+                 FILE_SELECT_DATA.subMenuStage++;
+@@ -3243,6 +3250,16 @@
+             break;
+ 
+         case 4:
++#ifdef PORT_NATIVE
++            /* Metroid de NES liberado pelo proprio jogo: roda o emulador do port e, ao sair dele, volta ao menu de opcoes */
++            NesRun();
++            FILE_SELECT_DATA.dispcnt = sPortNesSavedDispcnt;
++            FILE_SELECT_DATA.bldcnt = 0;
++            gWrittenToBldy_NonGameplay = 0;
++            FILE_SELECT_DATA.subMenuStage = 0;
++            FILE_SELECT_DATA.subMenuTimer = 0;
++            return TRUE;
++#endif
+             WRITE_16(REG_IME, FALSE);
+             WRITE_16(REG_IF, USHORT_MAX);
+ 

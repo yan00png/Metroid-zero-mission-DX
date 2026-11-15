@@ -111,7 +111,7 @@ open(p,'w').write(s)
 PY
 
 # 10) Patches do port: 16:9 nativo (margem de culling dos sprites, contagem de OAM do HUD)
-for pf in sprite hud room; do patch -p1 -s < "$HERE/patches/$pf.patch"; done
+for pf in sprite hud room nes; do patch -p1 -s < "$HERE/patches/$pf.patch"; done
 
 # 11) Audio: audio.c/audio_wrappers.c/music_wrappers.c ja adaptados ao port + motor de som PS2 e sintetizador PSG
 #     (ps2_engine.c, ps2_psg.c: escritos a partir do asm original; substituem o motor NX/GPL).

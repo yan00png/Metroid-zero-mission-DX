@@ -128,7 +128,7 @@ static void Draw(void);
 static void DrawPerfOverlay(void);
 static void DrawOverlays(void);
 extern int gBeDbg[5];
-static int sPage, sSel, sNesStart;
+static int sPage, sSel;
 static int sSize = 2;     /* 0 = 2.0x, 1 = 2.5x, 2 = ajustar a tela (padrao) */
 static int sPerf = 0;     /* barras de desempenho */
 static const char *const sSizeName[3] = {"2.0X", "2.5X", "FIT"};   /* 2.5X e FIT cintilam no 480i (linhas alternam entre 2 e 3) */
@@ -238,8 +238,8 @@ static const char *Desc(const char *labels[], int sel, char *buf, int bn)
 {
     if (sPage == PAGE_MAIN)
     {
-        static const char *const d[7] = { "VOLTA PARA O JOGO", "MODO, TAMANHO, ASPECTO E FILTRO", "VOLUMES E SAIDA DO SOM", "ATRIBUI OS BOTOES DO CONTROLE",
-                                          "TESTES DO RENDERIZADOR E TEMPOS", "METROID ORIGINAL (NES, 60 FPS)", "ABRE UM ELF DO MC OU DO USB" };
+        static const char *const d[5] = { "VOLTA PARA O JOGO", "MODO, TAMANHO, ASPECTO E FILTRO", "VOLUMES E SAIDA DO SOM", "ATRIBUI OS BOTOES DO CONTROLE",
+                                          "TESTES DO RENDERIZADOR E TEMPOS" };
         return d[sel];
     }
     if (sPage == PAGE_AUDIO)
@@ -291,9 +291,9 @@ static void Draw(void)
     int n = 3;
     if (sPage == PAGE_MAIN)
     {
-        n = 6;
-        labels[0] = "RESUME GAME"; labels[1] = "VIDEO"; labels[2] = "AUDIO"; labels[3] = "CONTROLS"; labels[4] = "DEBUG GS"; labels[5] = "METROID";
-        for (int i = 0; i < 6; i++) vals[i][0] = 0;
+        n = 5;
+        labels[0] = "RESUME GAME"; labels[1] = "VIDEO"; labels[2] = "AUDIO"; labels[3] = "CONTROLS"; labels[4] = "DEBUG GS";
+        for (int i = 0; i < 5; i++) vals[i][0] = 0;
     }
     else if (sPage == PAGE_AUDIO)
     {
@@ -511,7 +511,7 @@ void MenuRun(void)
         if (waitRelease) { if (!(p & ((1 << PB_START) | (1 << PB_SELECT)))) waitRelease = 0; continue; }
 
         int vids[8], vn = VideoRows(vids);
-        int count = sPage == PAGE_PERF ? 1 : sPage == PAGE_MAIN ? 6 : sPage == PAGE_AUDIO ? 5 : sPage == PAGE_DEBUG ? 8 : sPage == PAGE_CONTROL ? GBA_BTN_COUNT + 2 : vn;
+        int count = sPage == PAGE_PERF ? 1 : sPage == PAGE_MAIN ? 5 : sPage == PAGE_AUDIO ? 5 : sPage == PAGE_DEBUG ? 8 : sPage == PAGE_CONTROL ? GBA_BTN_COUNT + 2 : vn;
         if (e & (1 << PB_UP)) sSel = (sSel + count - 1) % count;
         if (e & (1 << PB_DOWN)) sSel = (sSel + 1) % count;
         int ok = e & (1 << PB_CROSS), back = e & ((1 << PB_CIRCLE) | (1 << PB_START));
@@ -525,7 +525,6 @@ void MenuRun(void)
             else if (ok && sSel == 2) { sPage = PAGE_AUDIO; sSel = 0; }
             else if (ok && sSel == 3) { sPage = PAGE_CONTROL; sSel = 0; }
             else if (ok && sSel == 4) { sPage = PAGE_DEBUG; sSel = 0; }
-            else if (ok && sSel == 5) { sNesStart = 1; closing = 1; }
         }
         else if (sPage == PAGE_AUDIO)
         {
@@ -579,7 +578,6 @@ void MenuRun(void)
     BeSetUiHook((sPerfText || sFps) ? DrawOverlays : 0);
     VideoSave();
     AudioCfgSave();
-    if (sNesStart) { sNesStart = 0; NesRun(); }   /* opcao METROID: emulacao do Metroid de NES (volta pelo menu de pausa dele) */
 }
 
 /* ---- tela de aviso (antes do jogo): titulo, linhas de detalhe e rodape. Retorna 1 = tentar de novo, 0 = sair. ---- */

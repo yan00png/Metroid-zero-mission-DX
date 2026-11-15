@@ -1,12 +1,31 @@
-# Metroid: Zero Mission - port nativo para PS2
+# Metroid: Zero Mission DX
 
-Port NATIVO (sem emulacao de CPU/PPU) do decomp [metroidret/mzm](https://github.com/metroidret/mzm) para PS2, via gsKit.
-O repositorio NAO contem a ROM nem dados extraidos dela: voce precisa da sua propria `mzm_us_baserom.gba` (US, Rev.00).
+Port **nativo** (sem emulação de CPU/PPU) de Metroid: Zero Mission para PS2, feito a partir da decompilação [metroidret/mzm](https://github.com/metroidret/mzm) e renderizado direto no GS com gsKit.
+
+Este repositório **não contém a ROM** nem dados extraídos dela: é preciso ter a sua própria cópia legal do jogo (versão americana, Rev.00).
 
 ## Estrutura
 `mzm/` e uma copia do decomp [metroidret/mzm](https://github.com/metroidret/mzm) (commit em `patches/mzm_commit.txt`), so codigo: sem ROM e sem
 dados extraidos dela (gráficos, salas, etc. sao extraidos da SUA ROM na hora de compilar). As alteracoes de portabilidade ficam em
 `patches/` e `audio_port/` e nao sao commitadas em `mzm/`: `prepare_mzm.sh` copia o decomp para `build/mzm` e aplica tudo la.
+
+## Features
+- Menu com várias configurações (Start + Select)
+- Suporte a 16:9 nativo, 4:3, 3:2 e 16:9 esticado
+- Suporte a FAT32 e exFAT
+- Suporte a 1080i e 480p nativos; o padrão é 480i
+- Possibilidade de personalizar os botões do controle
+- Suporte a ISO em CD/DVD
+- Suporte a filtros Scanline e LCD
+
+## Como usar o ELF
+Para usar o ELF você precisa da sua cópia legal da ROM do jogo (versão americana, Rev.00).
+
+1. Renomeie a ROM para **`metroid_zero.gba`**.
+2. Coloque o `metroid_zero.gba` na mesma pasta do ELF. O ELF pode ficar em qualquer lugar (pen-drive, HDD...), desde que o `metroid_zero.gba` esteja ao lado dele.
+3. Abra o ELF pela aba **Apps** do OPL.
+
+Também funciona em **ISO**: a ROM vai dentro da ISO (veja `tools/mkiso.sh`, que a monta com o ELF e a sua ROM) e o save vai para o memory card.
 
 ## Compilar
 Requer ps2dev/ps2sdk/gsKit (`PS2DEV`, `PS2SDK`, `GSKIT` no ambiente), python3.
@@ -17,7 +36,12 @@ sh tools/mkiso.sh mzm_game.elf /caminho/mzm_us_baserom.gba metroid_zero.iso   # 
 ```
 Execucao: ELF + `metroid_zero.gba` na mesma pasta (USB/HDD/CD); save em `save/` (ou memory card).
 
-## Licencas
+## Créditos
+Este port só existe graças à **equipe da decompilação de Metroid: Zero Mission** ([metroidret/mzm](https://github.com/metroidret/mzm)), que decompilou o jogo inteiro, e a todos os [colaboradores do projeto](https://github.com/metroidret/mzm/graphs/contributors). Obrigado!
+
+Metroid: Zero Mission é propriedade da Nintendo.
+
+## Licenças
 O decomp em `mzm/` e MIT (veja `mzm/LICENSE`). Os IRX em `src/platform/irx/` vem do ps2sdk (AFL 3.0).
 O codigo do port (este repositorio) e MIT, veja `LICENSE`. Metroid: Zero Mission e propriedade da Nintendo; o projeto nao inclui ROM nem dados extraidos dela.
 

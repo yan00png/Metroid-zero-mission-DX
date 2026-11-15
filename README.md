@@ -1,88 +1,80 @@
+**English** | [Português](README.pt-BR.md)
+
 # Metroid: Zero Mission DX
 
-Port **nativo** (sem emulação de CPU/PPU) de Metroid: Zero Mission para PS2, feito a partir da decompilação [metroidret/mzm](https://github.com/metroidret/mzm) e renderizado direto no GS com gsKit.
+A **native** port (no CPU/PPU emulation) of Metroid: Zero Mission for the PS2, built from the [metroidret/mzm](https://github.com/metroidret/mzm) decompilation and rendered straight on the GS with gsKit.
 
-Este repositório **não contém a ROM** nem dados extraídos dela: é preciso ter a sua própria cópia legal do jogo (versão americana, Rev.00).
+This repository **does not contain the ROM** or any data extracted from it: you need your own legal copy of the game (US version, Rev.00).
 
-## Estrutura
-`mzm/` e uma copia do decomp [metroidret/mzm](https://github.com/metroidret/mzm) (commit em `patches/mzm_commit.txt`), so codigo: sem ROM e sem
-dados extraidos dela (gráficos, salas, etc. sao extraidos da SUA ROM na hora de compilar). As alteracoes de portabilidade ficam em
-`patches/` e `audio_port/` e nao sao commitadas em `mzm/`: `prepare_mzm.sh` copia o decomp para `build/mzm` e aplica tudo la.
+## Structure
+`mzm/` is a copy of the [metroidret/mzm](https://github.com/metroidret/mzm) decomp (commit in `patches/mzm_commit.txt`), code only: no ROM and no data extracted from it (graphics, rooms, etc. are extracted from YOUR ROM at build time). The portability changes live in `patches/` and `audio_port/` and are not committed into `mzm/`: `prepare_mzm.sh` copies the decomp to `build/mzm` and applies everything there.
 
 ## Features
-- Menu com várias configurações (Start + Select)
-- Suporte a 16:9 nativo, 4:3, 3:2 e 16:9 esticado
-- Suporte a FAT32 e exFAT
-- Suporte a 1080i e 480p nativos; o padrão é 480i
-- Possibilidade de personalizar os botões do controle
-- Suporte a ISO em CD/DVD
-- Suporte a filtros Scanline e LCD
+- Menu with several settings (Start + Select)
+- Native 16:9 support, plus 4:3, 3:2 and stretched 16:9
+- FAT32 and exFAT support
+- Native 1080i and 480p support; the default is 480i
+- Customizable controller buttons
+- CD/DVD ISO support
+- Scanline and LCD filters
 
-## Como usar o ELF
-Para usar o ELF você precisa da sua cópia legal da ROM do jogo (versão americana, Rev.00).
+## How to use the ELF
+To use the ELF you need your own legal copy of the game ROM (US version, Rev.00).
 
-1. Renomeie a ROM para **`metroid_zero.gba`**.
-2. Coloque o `metroid_zero.gba` na mesma pasta do ELF. O ELF pode ficar em qualquer lugar (pen-drive, HDD...), desde que o `metroid_zero.gba` esteja ao lado dele.
-3. Abra o ELF pela aba **Apps** do OPL.
+1. Rename the ROM to **`metroid_zero.gba`**.
+2. Put `metroid_zero.gba` in the same folder as the ELF. The ELF can be anywhere (USB drive, HDD...), as long as `metroid_zero.gba` is next to it.
+3. Launch the ELF from the **Apps** tab of OPL.
 
-Também funciona em **ISO**: a ROM vai dentro da ISO (veja `tools/mkiso.sh`, que a monta com o ELF e a sua ROM) e o save vai para o memory card.
+It also works as an **ISO**: the ROM goes inside the ISO (see `tools/mkiso.sh`, which builds it from the ELF and your ROM) and the save goes to the memory card.
 
-## Compilar
-Requer ps2dev/ps2sdk/gsKit (`PS2DEV`, `PS2SDK`, `GSKIT` no ambiente), python3.
+## Building
+Requires ps2dev/ps2sdk/gsKit (`PS2DEV`, `PS2SDK`, `GSKIT` in the environment) and python3.
 ```
-./prepare_mzm.sh mzm /caminho/mzm_us_baserom.gba
-TARGET=ps2 ./build_game.sh && make      # gera mzm_game.elf
-sh tools/mkiso.sh mzm_game.elf /caminho/mzm_us_baserom.gba metroid_zero.iso   # opcional
+./prepare_mzm.sh mzm /path/to/mzm_us_baserom.gba
+TARGET=ps2 ./build_game.sh && make      # produces mzm_game.elf
+sh tools/mkiso.sh mzm_game.elf /path/to/mzm_us_baserom.gba metroid_zero.iso   # optional
 ```
-Execucao: ELF + `metroid_zero.gba` na mesma pasta (USB/HDD/CD); save em `save/` (ou memory card).
+Running: ELF + `metroid_zero.gba` in the same folder (USB/HDD/CD); the save goes to `save/` (or the memory card).
 
-## Créditos
-Este port só existe graças à **equipe da decompilação de Metroid: Zero Mission** ([metroidret/mzm](https://github.com/metroidret/mzm)), que decompilou o jogo inteiro, e a todos os [colaboradores do projeto](https://github.com/metroidret/mzm/graphs/contributors). Obrigado!
+## Credits
+This port only exists thanks to the **Metroid: Zero Mission decompilation team** ([metroidret/mzm](https://github.com/metroidret/mzm)), who decompiled the whole game, and to all the [project contributors](https://github.com/metroidret/mzm/graphs/contributors). Thank you!
 
-Metroid: Zero Mission é propriedade da Nintendo.
+Metroid: Zero Mission is property of Nintendo.
 
-## Licenças
-O decomp em `mzm/` e MIT (veja `mzm/LICENSE`). Os IRX em `src/platform/irx/` vem do ps2sdk (AFL 3.0).
-O codigo do port (este repositorio) e MIT, veja `LICENSE`. Metroid: Zero Mission e propriedade da Nintendo; o projeto nao inclui ROM nem dados extraidos dela.
+## Licenses
+The decomp in `mzm/` is MIT (see `mzm/LICENSE`). The IRX modules in `src/platform/irx/` come from ps2sdk (AFL 3.0).
+The port code (this repository) is MIT, see `LICENSE`. Metroid: Zero Mission is property of Nintendo; the project includes no ROM and no data extracted from it.
 
 ---
 
-# mzm -> PS2 (fase 1: renderizador nativo no GS)
+# mzm -> PS2 (phase 1: native renderer on the GS)
 
-Backend de video para um port do decomp do Metroid: Zero Mission (metroidret/mzm). Sem emulacao de CPU
-ou de scanline: o GS desenha direto, a partir dos dados que o jogo escreve.
+Video backend for a port of the Metroid: Zero Mission decomp (metroidret/mzm). No CPU or scanline emulation: the GS draws directly from the data the game writes.
 
-- `include/gba/memory.h`: substitui o do mzm; REG_*/VRAM/PALRAM/OAM apontam para buffers no host, entao
-  `WRITE_16(REG_DISPCNT, ...)` e headers (`gba/display.h`, `io.h`) funcionam sem alteracao.
-- `src/gfx_cache.c`: traduz VRAM/paleta para formatos do GS (so recompoe o que mudou):
-  camadas de BG pre-compostas em texturas T8 (4bpp vira banco*16+cor), atlas de OBJ em T4/T8, CLUTs.
-- `src/render.c`: decide o que desenhar: ordem por prioridade, BG com wrap, sprites (flip, 1D/2D, 4/8bpp),
-  sprites afins (rotacao/escala), alpha de OBJ e de camada, fade por BLDY.
-- `src/backend_gs.c`: gsKit; quads texturizados, CLUT por banco, faixas pretas fora dos 240x160.
-- `test/be_host.c`: backend de teste no host (amostra as mesmas texturas) para validar a logica sem GS.
-- `src/main.c`: cena de demo.
+- `include/gba/memory.h`: replaces mzm's own; REG_*/VRAM/PALRAM/OAM point to host buffers, so `WRITE_16(REG_DISPCNT, ...)` and the headers (`gba/display.h`, `io.h`) work unchanged.
+- `src/gfx_cache.c`: translates VRAM/palettes into GS formats (only recomposes what changed): BG layers pre-composed into T8 textures (4bpp becomes bank*16+color), OBJ atlas in T4/T8, CLUTs.
+- `src/render.c`: decides what to draw: priority order, wrapping BGs, sprites (flip, 1D/2D, 4/8bpp), affine sprites (rotation/scaling), OBJ and layer alpha, BLDY fade.
+- `src/backend_gs.c`: gsKit; textured quads, per-bank CLUT, black bars outside the 240x160 area.
+- `test/be_host.c`: host test backend (samples the same textures) to validate the logic without a GS.
+- `src/main.c`: demo scene.
 
-Build: `make MZM=/caminho/do/mzm` (PS2DEV/PS2SDK/GSKIT no ambiente; ver setup_ps2dev.sh).
+Build: `make MZM=/path/to/mzm` (PS2DEV/PS2SDK/GSKIT in the environment; see setup_ps2dev.sh).
 
-Nao suportado ainda: janelas (WIN0/WIN1/OBJ), mosaico, BGs afins (modos 1-2), modos 3-5, brilho por camada
-(so fade da tela inteira), blend alpha exato por pixel (aproximado por camada), efeitos por scanline (HDMA).
+Not supported yet: windows (WIN0/WIN1/OBJ), mosaic, affine BGs (modes 1-2), modes 3-5, per-layer brightness (whole-screen fade only), exact per-pixel alpha blending (approximated per layer), per-scanline effects (HDMA).
 
-## Como compilar o jogo completo
+## How to build the full game
 
-1. `./prepare_mzm.sh /caminho/mzm /caminho/mzm_us_baserom.gba` (ROM US Rev.00; extrai os dados e aplica as correcoes de `patches/`)
-2. Teste no host (sem PS2): `DUMP=60,600 STOP=600 test/run_host.sh` -> quadros em `build/out/*.ppm`;
-   entrada de teste: `KEYS="3@100-110"` (bit do botao GBA @ quadros).
-3. PS2: `TARGET=ps2 ./build_game.sh && make` -> `mzm_game.elf` (a demo antiga do renderizador ficou em `Makefile.demo`).
+1. `./prepare_mzm.sh /path/to/mzm /path/to/mzm_us_baserom.gba` (US Rev.00 ROM; extracts the data and applies the fixes in `patches/`)
+2. Host test (no PS2): `DUMP=60,600 STOP=600 test/run_host.sh` -> frames in `build/out/*.ppm`; test input: `KEYS="3@100-110"` (GBA button bit @ frames).
+3. PS2: `TARGET=ps2 ./build_game.sh && make` -> `mzm_game.elf` (the old renderer demo is kept in `Makefile.demo`).
 
-Camada de plataforma em `src/platform/`: BIOS em C (LZ77, CpuSet...), DMA imediato, ciclo de frame
-(Halt/VBlank = handler de VBlank do jogo + desenho no GS + leitura do controle), controle via libpad.
+Platform layer in `src/platform/`: BIOS in C (LZ77, CpuSet...), immediate DMA, frame cycle (Halt/VBlank = the game's VBlank handler + drawing on the GS + reading the controller), controller through libpad.
 
-Estado: a abertura do jogo roda inteira no host (texto, arte da Samus, nave, nebulosa). Ainda sem audio (mudo),
-sem DMA de HBlank (efeitos de calor/ondulacao), sem janelas/mosaico/BGs afins no renderizador, sem link cable.
+Status: the game's intro runs entirely on the host (text, Samus art, ship, nebula). Still no audio (muted), no HBlank DMA (heat/wave effects), no windows/mosaic/affine BGs in the renderer, no link cable.
 
-## Menu do frontend (Start + Select)
-Abre por cima do jogo (o jogo fica parado). Cima/Baixo move, X confirma, O volta.
-- **Resume game**: volta ao jogo.
-- **Video**: *Screen size* (2.0x / 2.5x / FIT = maior tamanho inteiro que cabe) e *Perf bars* (barras de desempenho, desligadas por padrao).
-- **Exit game**: sai do jogo.
-Codigo: `src/menu.c` (menu + fonte 5x7 propria), `PlatformPollInput` em `src/platform/platform.c` (deteccao do atalho; o Start chega ao jogo com 3 quadros de atraso para nao abrir a pausa antes do menu).
+## Frontend menu (Start + Select)
+Opens over the game (the game is paused). Up/Down moves, X confirms, O goes back.
+- **Resume game**: back to the game.
+- **Video**: *Screen size* (2.0x / 2.5x / FIT = largest integer size that fits) and *Perf bars* (performance bars, off by default).
+- **Exit game**: exits the game.
+Code: `src/menu.c` (menu + own 5x7 font), `PlatformPollInput` in `src/platform/platform.c` (shortcut detection; Start reaches the game 3 frames late so the pause screen does not open before the menu).

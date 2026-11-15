@@ -1,0 +1,20 @@
+# Port inicial do mzm para PS2: so renderizacao via gsKit.
+# Uso: make MZM=/caminho/para/mzm   (precisa de PS2DEV/PS2SDK/GSKIT no ambiente)
+MZM ?= ../metroidret/mzm
+
+EE_BIN = mzm_ps2.elf
+EE_OBJS = src/main.o src/gba_mem.o src/gfx_cache.o src/render.o src/backend_gs.o
+
+# include/ local primeiro: substitui gba/memory.h do mzm
+EE_INCS += -Iinclude -Isrc -I$(MZM)/include -I$(GSKIT)/include
+EE_CFLAGS += -std=gnu11 -Wno-unused-function
+EE_LDFLAGS += -L$(GSKIT)/lib
+EE_LIBS += -lgskit -ldmakit
+
+all: $(EE_BIN)
+
+clean:
+	rm -f $(EE_BIN) $(EE_OBJS)
+
+include $(PS2SDK)/samples/Makefile.pref
+include $(PS2SDK)/samples/Makefile.eeglobal

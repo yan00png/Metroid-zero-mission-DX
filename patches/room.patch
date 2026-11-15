@@ -1,0 +1,14 @@
+--- a/src/room.c	2026-11-14 09:50:27.351087434 -0300
++++ b/src/room.c	2026-11-14 09:50:27.362274685 -0300
+@@ -1015,6 +1015,11 @@
+         if (gScrollCounter & 1 || gCamera.xVelocity < -(HALF_BLOCK_SIZE - PIXEL_SIZE) || gCamera.xVelocity > (HALF_BLOCK_SIZE - PIXEL_SIZE))
+         {
+             RoomUpdateHorizontalTilemap(QUARTER_BLOCK_SIZE);
++#ifdef PORT_NATIVE
++            /* 16:9 nativo: o jogo so garante a coluna 16 blocos a frente (ate ~257 px da tela); a tela larga mostra ate 262 px,
++             * e o resto era coluna velha do buffer de 512 px (sujeira na borda direita ao correr). Carrega mais uma coluna. */
++            RoomUpdateHorizontalTilemap(QUARTER_BLOCK_SIZE + 1);
++#endif
+             RoomUpdateHorizontalTilemap(-(PIXEL_SIZE / 2));
+         }
+ 

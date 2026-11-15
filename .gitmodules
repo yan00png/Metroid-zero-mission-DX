@@ -1,0 +1,3 @@
+[submodule "mzm"]
+	path = mzm
+	url = https://github.com/metroidret/mzm.git

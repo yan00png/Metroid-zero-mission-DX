@@ -1,0 +1,18 @@
+--- a/src/hud.c	2026-11-05 15:21:34.733712072 -0300
++++ b/src/hud.c	2026-11-08 21:57:02.871088661 -0300
+@@ -38,6 +38,7 @@
+  * @brief 52308 | 35c | Updates the OAM of the HUD
+  * 
+  */
++extern u8 gPortHudOamCount; /* PS2: quantos slots de OAM sao do HUD (para ancorar nos cantos no 16:9) */
+ void HudUpdateOam(void)
+ {
+     u32 oamSlot;
+@@ -216,6 +217,7 @@
+         oamSlot++;
+     }
+ 
++    gPortHudOamCount = oamSlot;
+     gNextOamSlot = oamSlot;
+ }
+ 

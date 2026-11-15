@@ -1,0 +1,18 @@
+--- a/src/sprite.c	2026-11-05 15:21:34.735643321 -0300
++++ b/src/sprite.c	2026-11-12 07:26:39.545774502 -0300
+@@ -1672,6 +1672,15 @@
+     drawOffset = PIXEL_TO_SUB_PIXEL(pSprite->drawDistanceHorizontal) + SCREEN_SIZE_X_SUB_PIXEL;
+     spriteRight = bgXRange + drawOffset;
+ 
++#ifdef PORT_NATIVE
++    {
++        /* 16:9 nativo: a tela tem colunas extras dos dois lados; sem esta folga os sprites sumiriam/apareceriam de repente na borda */
++        extern int BeWsPad(void);
++        u32 padSub = PIXEL_TO_SUB_PIXEL(BeWsPad());
++        spriteLeft = spriteLeft > padSub ? spriteLeft - padSub : 0;
++        spriteRight = spriteRight + padSub < 0xFFFF ? spriteRight + padSub : 0xFFFF;
++    }
++#endif
+     if (spriteLeft < spriteXRange && spriteXRange < spriteRight && spriteBottom < spriteYRange && spriteYRange < spriteTop)
+     {
+         pSprite->status |= SPRITE_STATUS_ONSCREEN;

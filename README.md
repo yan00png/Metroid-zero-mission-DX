@@ -3,13 +3,10 @@
 Port NATIVO (sem emulacao de CPU/PPU) do decomp [metroidret/mzm](https://github.com/metroidret/mzm) para PS2, via gsKit.
 O repositorio NAO contem a ROM nem dados extraidos dela: voce precisa da sua propria `mzm_us_baserom.gba` (US, Rev.00).
 
-## Clonar
-```
-git clone --recurse-submodules <url-deste-repo>
-# ou, se ja clonou: git submodule update --init
-```
-O decomp fica em `mzm/` (submodulo fixado no commit de `patches/mzm_commit.txt`). As alteracoes de portabilidade
-nao sao commitadas nele: `prepare_mzm.sh` copia o decomp para `build/mzm` e aplica `patches/` + `audio_port/`.
+## Estrutura
+`mzm/` e uma copia do decomp [metroidret/mzm](https://github.com/metroidret/mzm) (commit em `patches/mzm_commit.txt`), so codigo: sem ROM e sem
+dados extraidos dela (gráficos, salas, etc. sao extraidos da SUA ROM na hora de compilar). As alteracoes de portabilidade ficam em
+`patches/` e `audio_port/` e nao sao commitadas em `mzm/`: `prepare_mzm.sh` copia o decomp para `build/mzm` e aplica tudo la.
 
 ## Compilar
 Requer ps2dev/ps2sdk/gsKit (`PS2DEV`, `PS2SDK`, `GSKIT` no ambiente), python3.
@@ -21,7 +18,7 @@ sh tools/mkiso.sh mzm_game.elf /caminho/mzm_us_baserom.gba metroid_zero.iso   # 
 Execucao: ELF + `metroid_zero.gba` na mesma pasta (USB/HDD/CD); save em `save/` (ou memory card).
 
 ## Licencas
-O decomp (submodulo) e MIT (YohannDR). Os IRX em `src/platform/irx/` vem do ps2sdk (AFL 3.0).
+O decomp em `mzm/` e MIT (veja `mzm/LICENSE`). Os IRX em `src/platform/irx/` vem do ps2sdk (AFL 3.0).
 O codigo do port (este repositorio) e MIT, veja `LICENSE`. Metroid: Zero Mission e propriedade da Nintendo; o projeto nao inclui ROM nem dados extraidos dela.
 
 ---

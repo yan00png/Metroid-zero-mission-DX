@@ -124,7 +124,7 @@ static void GbaColorInit(void)
 }
 static const u16 *ClutFx(const u16 *src, int n, int slot)
 {
-    static u16 buf[21][256];
+    static u16 buf[21][256] __attribute__((aligned(64)));   /* o DMA do GS exige origem alinhada em 16 bytes */
     if (!sColorFx) return src;
     GbaColorInit();
     u16 *d = buf[slot];
@@ -375,7 +375,7 @@ void BeSync(void)
         Send(tex[i].Mem, LAYER_STRIDE, L->hPx, tex[i].Vram, GS_PSM_T8, LAYER_STRIDE / 64, GS_CLUT_NONE);
         L->dirty = 0;
     }
-    if (sHires) FlushCache(0);
+    FlushCache(0);   /* tambem fora do hires: ClutFx escreve nos buffers de paleta (cache) DEPOIS do flush do inicio; o DMA le a RAM */
 }
 
 int BeFilterLinear(void) { return sObjLinear; }   /* os sprites usam bilinear */
@@ -401,6 +401,15 @@ static GSTEXTURE *Bind(int id, int clut)
     t->Clut = (u32 *)gClutBg4; /* so precisa ser nao-nulo; o CLUT ja esta na VRAM do GS */
     t->VramClut = clutVram[clut];
     return t;
+}
+
+static int sAddBlend;
+void BeBlendAdd(int on)
+{
+    if (on == sAddBlend) return;
+    sAddBlend = on;
+    /* EVB==16: Cs*As + Cd (soma, com saturacao) ; normal: (Cs-Cd)*As + Cd */
+    gsKit_set_primalpha(gs, on ? GS_SETREG_ALPHA(0, 2, 0, 1, 0) : GS_SETREG_ALPHA(0, 1, 0, 1, 0), 0);
 }
 
 #define COL(alpha, shade) GS_SETREG_RGBAQ(shade, shade, shade, alpha, 0)

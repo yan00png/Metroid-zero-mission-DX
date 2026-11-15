@@ -39,7 +39,7 @@ extern uint16_t gBg0XPosition, gBg1XPosition, gBg2XPosition;   /* posicao dos fu
 extern struct { uint8_t bytes[64]; } gCurrentRoomEntry;       /* so os bytes bg0Prop..bg2Prop (1..3) */
 extern struct { struct { uint16_t *pDecomp; uint16_t width, height; } backgrounds[3]; } gBgPointersAndDimensions;
 uint8_t gPortHudOamCount;   /* preenchido por HudUpdateOam (hud.c): slots 0..n-1 sao o HUD */
-static int sEffect, sFirst, sSecond, sEva, sEvy, sFullFade, sDrawn, sScratch;
+static int sEffect, sFirst, sSecond, sEva, sEvb, sEvy, sAdd, sFullFade, sDrawn, sScratch;
 
 /* faixa [y0,y1) com scroll constante; pode cruzar a borda do mapa: ate 4 retangulos */
 /* ---- janelas (WIN0/WIN1): a tela e dividida em celulas retangulares; cada uma tem a mascara de camadas visiveis
@@ -396,11 +396,13 @@ static void DrawObjs(int prio, int oneD)
         int wsPad = sWs;
         if (ox >= 240 + wsPad || oy >= 160 || ox + bw <= -wsPad || oy + bh <= 0) continue;
 
-        int alpha = 128, shade = 128;
-        if (mode == 1 && (sSecond & sDrawn)) alpha = sEva * 8;
-        else if (sEffect == 1 && (sFirst & 0x10) && (sSecond & sDrawn)) alpha = sEva * 8;
+        int alpha = 128, shade = 128, bl = 0;
+        if (mode == 1 && (sSecond & sDrawn)) { alpha = sEva * 8; bl = 1; }
+        else if (sEffect == 1 && (sFirst & 0x10) && (sSecond & sDrawn)) { alpha = sEva * 8; bl = 1; }
         if (sEffect == 3 && (sFirst & 0x10) && !sFullFade) shade = 128 - sEvy * 8;
+        if (sEffect == 2 && (sFirst & 0x10) && !sFullFade) shade = 128 + sEvy * 7;
         if (!alpha) continue;
+        BeBlendAdd(bl && sAdd);
         int base = a2 & 0x3FF, bank = a2 >> 12;
         int clut = is8 ? CLUT_OBJ8 : CLUT_OBJ4(bank);
 
@@ -455,6 +457,7 @@ static void DrawObjs(int prio, int oneD)
         BeQuadAffine(TEX_SCRATCH0 + sScratch, clut, sx, sy, tu, tv, alpha, shade);
         sScratch++;
     }
+    BeBlendAdd(0);
 }
 
 #ifdef HBTEST
@@ -540,8 +543,15 @@ void RenderFrame(void)
     {
         BuildWindows(dispcnt);
         uint16_t bld = Io16(0x50), ba = Io16(0x52), by = Io16(0x54);
+#ifdef TESTFX
+        if (TESTFX == 1) { bld = 0x1F00 | (1 << 6) | 0x10 | 0x0F; ba = 8 | (16 << 8); }   /* aditivo: BGs+OBJ sobre o que esta atras */
+        if (TESTFX == 2) { bld = (2 << 6) | 0x1F; by = 10; }                      /* clarear camadas */
+        if (TESTFX == 3) { bld = 0x1F00 | (1 << 6) | 0x1F; ba = 8 | (8 << 8); }   /* normal 50% */
+#endif
         sEffect = (bld >> 6) & 3; sFirst = bld & 0x3F; sSecond = (bld >> 8) & 0x3F;
         sEva = (ba & 31) > 16 ? 16 : (ba & 31); sEvy = (by & 31) > 16 ? 16 : (by & 31);
+        sEvb = (ba >> 8 & 31) > 16 ? 16 : (ba >> 8 & 31);
+        sAdd = sEvb == 16 && sEva + sEvb != 16;
         sFullFade = sEffect >= 2 && sFirst == 0x3F;
         sDrawn = 0x20; sScratch = 0;
 
@@ -550,10 +560,11 @@ void RenderFrame(void)
             for (int bg = 3; bg >= 0; bg--)
             {
                 if (!gBgLayer[bg].enabled || (Io16(0x08 + bg * 2) & 3) != prio) continue;
-                int alpha = 128, shade = 128, bit = 1 << bg;
-                if (sEffect == 1 && (sFirst & bit) && (sSecond & sDrawn)) alpha = sEva * 8;
+                int alpha = 128, shade = 128, bit = 1 << bg, bl = 0;
+                if (sEffect == 1 && (sFirst & bit) && (sSecond & sDrawn)) { alpha = sEva * 8; bl = 1; }
                 if (sEffect == 3 && (sFirst & bit) && !sFullFade) shade = 128 - sEvy * 8;
-                if (alpha) DrawBg(bg, alpha, shade);
+                if (sEffect == 2 && (sFirst & bit) && !sFullFade) shade = 128 + sEvy * 7;   /* aproximacao: modula ate ~2x e satura */
+                if (alpha) { BeBlendAdd(bl && sAdd); DrawBg(bg, alpha, shade); BeBlendAdd(0); }
                 sDrawn |= bit;
             }
             if (dispcnt & 0x1000) { DrawObjs(prio, (dispcnt >> 6) & 1); sDrawn |= 0x10; }

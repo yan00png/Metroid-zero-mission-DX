@@ -26,6 +26,7 @@ int BeFilterLinear(void);   /* 1 = bilinear ligado */
 int BeScratchOk(void);      /* 0 se os scratch estao desligados no debug */
 void BeScratch(int slot, int is8, int wPx, int hPx, const uint8_t *data);
 void BeOverlay(int white, int alpha);
+void BeBlendAdd(int on);
 void BeOverlayRect(float x, float y, float w, float h, int white, int alpha);
 void BeEndFrame(void);
 void RenderFrame(void);

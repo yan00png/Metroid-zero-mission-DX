@@ -355,7 +355,7 @@ static void Draw(void)
                 case V_MODE: labels[i] = "VIDEO MODE"; snprintf(vals[i], 12, "< %s >", sModeName[sVMode]); break;
                 case V_SIZE: labels[i] = "SCREEN SIZE"; snprintf(vals[i], 12, "< %s >", sSizeName[sSize]); break;
                 case V_ASPECT: labels[i] = "ASPECT"; snprintf(vals[i], 14, "< %s >", sAspectName[sVMode == 1 ? sAspect480 : sAspect]); break;
-                case V_COLOR: labels[i] = "COLOR"; strcpy(vals[i], sColor ? "< GBA >" : "< OFF >"); break;
+                case V_COLOR: labels[i] = "COLOR"; strcpy(vals[i], sColor ? "< GBA >" : "< PS2 >"); break;
                 case V_FILTER: labels[i] = "FILTER"; { static const char *const fn[3] = { "< OFF >", "< LCD >", "< SCANLINE >" }; strcpy(vals[i], fn[sFilter]); } break;
                 case V_FPS: labels[i] = "FPS MONITOR"; strcpy(vals[i], sFps ? "< ON >" : "< OFF >"); break;
                 case V_PERF: labels[i] = "PERF BARS"; strcpy(vals[i], sPerf ? "< ON >" : "< OFF >"); break;

@@ -6,4 +6,6 @@ void MenuVideoLoad(void);   /* aplica o video salvo (save/video.cfg); chamar dep
 /* Aviso em tela cheia antes do jogo (ate 4 linhas). Retorna 1 se o usuario escolheu tentar de novo (X), 0 para sair (O). */
 int MenuMessage(const char *title, const char **lines, int n, const char *foot);
 void MenuStatus(const char *title);
+int MenuLanguage(void);   /* ENGLISH / PORTUGUES (BR): define gPtBr */
+extern int gPtBr;
 #endif

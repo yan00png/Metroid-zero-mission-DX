@@ -261,6 +261,7 @@ int StorageOpen(const char *rel, int write)
     if (sDisc)
     {
         if (!write && !strcmp(rel, ROM_FILE_NAME)) return DiscOpenRom();
+        if (!write && !strcmp(rel, "metroid_zero.sav")) return fioOpen("cdrom0:\\MZM.SAV;1", FIO_O_RDONLY);   /* .sav na ISO (importa, so se nao houver save no memory card) */
         return McOpen(rel, write);
     }
     char p[256]; Full(rel, p, sizeof p);

@@ -57,6 +57,7 @@ static int sObjLinear = 0, sObjPad = 0;
 static int sColorFx = 0;   /* 1 = correcao de cor do GBA (paletas) */
 static int sScreenFx = 0;  /* 0 nada, 1 LCD (linhas finas), 2 scanlines. */
 static int sSizeSel = 0;
+static int sWsMask, sWsSaved;
 static int sPad = 0;           /* 16:9 nativo: colunas extras de cada lado (em pixels do GBA) */
 #define WS_PAD 22      /* 160 * 16/9 = 284 -> (284 - 240) / 2 */
 static int sForceUpload = 0;   /* VRAM refeita (troca de modo): reenviar tudo nos proximos quadros */
@@ -64,7 +65,7 @@ static void (*sUiHook)(void);
 
 static void Layout(int size)
 {
-    sSizeSel = size;
+    sSizeSel = size; sWsMask = 0; sWsSaved = 0;
     float fw = (float)gs->Width, fh = (float)gs->Height;
     uiX = 0; uiY = 0; uiW = fw; uiH = fh;
     sPad = 0;
@@ -107,8 +108,24 @@ static void ApplyFilter(void)
 }
 
 int BeWsPad(void) { return sPad; }
-static int sWsMask;
-void BeSetWsMask(int on) { sWsMask = on; }
+static float sWsSX, sWsOX;   /* escala/origem do layout 16:9 completo, para voltar depois de uma cena 4:3 */
+
+void BeSetWsMask(int on)
+{
+    if (!sPad) { sWsMask = on; sWsSaved = 0; return; }
+    if (!sWsSaved) { sWsSX = SX; sWsOX = ox; sWsSaved = 1; }
+    if (on != sWsMask)
+    {
+        if (on)   /* cena sem widescreen: 240x160 esticado em 4:3 centralizado */
+        {
+            float fw = (float)gs->Width;
+            SX = fw * 0.75f / GBA_W;
+            ox = (fw - fw * 0.75f) * 0.5f + (sMode == 3 ? -0.5f : 0.0f);
+        }
+        else { SX = sWsSX; ox = sWsOX; }
+    }
+    sWsMask = on;
+}
 void BeSetScreenFx(int fx) { sScreenFx = fx; }
 
 /* Correcao de cor do GBA: a tela do GBA era escura e pouco saturada. Linear (gama 3.2) -> mistura de canais -> gama de saida 1/2.2.

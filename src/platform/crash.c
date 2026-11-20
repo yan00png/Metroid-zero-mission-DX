@@ -18,6 +18,8 @@
 static volatile uint32_t sBeat;          /* incrementado a cada PlatformWaitVBlank */
 static volatile uint32_t sLastBeat, sStall, sHangEpc, sHangRa;
 static volatile uint32_t sVbl;
+static volatile uint32_t sFixN, sFixPc[8], sFixAddr[8];
+static volatile int sExc;   /* a tela de crash esta (ou vai estar) na TV: a thread de travamento nao pode escrever por cima */
 static int sMainTid = -1;
 static volatile int sHang, sHangSema = -1, sVbId = -1;
 static char sThreadStack[4096] __attribute__((aligned(16)));
@@ -59,12 +61,123 @@ static void CrashScreen(void)
     snprintf(e, sizeof e, "%s", dbg);
     char t[64]; snprintf(t, sizeof t, "EXCECAO %d: %s  CAUSE=%08X", code, ExcName(code), (unsigned)r->cause);
     sHang = 1;
-    Show(t, a, b, c, d, e);
+    {
+        char f[96]; snprintf(f, sizeof f, "FIXUPS=%u: %08X@%08X %08X@%08X", (unsigned)sFixN, (unsigned)sFixPc[0], (unsigned)sFixAddr[0], (unsigned)sFixPc[1], (unsigned)sFixAddr[1]);
+        Show(t, a, b, c, d, e);
+        scr_printf("  %s\n", f);
+    }
     for (;;) {}
+}
+
+/* ---- Acessos desalinhados: o EE real levanta AdEL/AdES onde o PCSX2 aceita calado. O codigo do jogo (decomp, ponteiros u8*
+ * convertidos para u16 ou u32) tem muitos. Em vez de cair na tela de crash, emulamos a instrucao byte a byte e seguimos
+ * (lh/lhu/lw/lwu/ld/sh/sw/sd, tambem no delay slot de um desvio). So o que nao da para emular (FPU lwc1/swc1, instrucao
+ * desconhecida) chega na tela de crash. ---- */
+
+static inline uint32_t *RGP(struct st_EE_RegFrame *r, int i) { return &((uint32_t *)r)[i * 4]; }
+
+/* avalia o desvio em `pc` antes do delay slot; devolve 0 se nao for um desvio conhecido */
+static int EvalBranch(struct st_EE_RegFrame *r, uint32_t pc, uint32_t *next)
+{
+    uint32_t ins = *(volatile uint32_t *)(uintptr_t)pc;
+    int op = ins >> 26, rs = (ins >> 21) & 31, rt = (ins >> 16) & 31;
+    int32_t a = (int32_t)*RGP(r, rs), b = (int32_t)*RGP(r, rt);
+    uint32_t tgt = pc + 4 + ((uint32_t)(int32_t)(int16_t)(ins & 0xFFFF) << 2);
+    int take;
+    switch (op)
+    {
+    case 4: case 20: take = a == b; break;
+    case 5: case 21: take = a != b; break;
+    case 6: case 22: take = a <= 0; break;
+    case 7: case 23: take = a > 0; break;
+    case 1:
+        switch (rt)
+        {
+        case 0: case 2: take = a < 0; break;
+        case 1: case 3: take = a >= 0; break;
+        default: return 0;
+        }
+        break;
+    case 2: *next = ((pc + 4) & 0xF0000000u) | ((ins & 0x3FFFFFF) << 2); return 1;
+    case 3:
+        *next = ((pc + 4) & 0xF0000000u) | ((ins & 0x3FFFFFF) << 2);
+        *RGP(r, 31) = pc + 8; RGP(r, 31)[1] = 0;
+        return 1;
+    case 0:
+        if ((ins & 0x3F) == 8) { *next = (uint32_t)a; return 1; }
+        if ((ins & 0x3F) == 9)
+        {
+            int rd = (ins >> 11) & 31; uint32_t t = (uint32_t)a;
+            if (rd) { *RGP(r, rd) = pc + 8; RGP(r, rd)[1] = 0; }
+            *next = t; return 1;
+        }
+        return 0;
+    default: return 0;
+    }
+    *next = take ? tgt : pc + 8;
+    return 1;
+}
+
+static int EmuMem(struct st_EE_RegFrame *r, uint32_t ins, int nullPage)
+{
+    int op = ins >> 26, rs = (ins >> 21) & 31, rt = (ins >> 16) & 31;
+    uint32_t addr = *RGP(r, rs) + (uint32_t)(int32_t)(int16_t)(ins & 0xFFFF);
+    if (addr != r->badvaddr) return 0;
+    volatile uint8_t *m = (volatile uint8_t *)(uintptr_t)addr;
+    uint32_t lo = 0, hi = 0; int n;
+    switch (op)
+    {
+    case 0x20: case 0x24: n = 1; break;
+    case 0x28: n = 1; break;
+    case 0x21: case 0x25: n = 2; break;
+    case 0x23: case 0x27: n = 4; break;
+    case 0x37: case 0x3F: n = 8; break;
+    case 0x29: n = 2; break;
+    case 0x2B: n = 4; break;
+    default: return 0;
+    }
+    if (op < 0x28 || op == 0x37)   /* carga */
+    {
+        if (!rt) return 1;
+        if (nullPage) { RGP(r, rt)[0] = 0; RGP(r, rt)[1] = 0; return 1; }   /* GBA le a BIOS/ROM em 0: aqui vale 0 */
+        for (int i = 0; i < n; i++) { if (i < 4) lo |= (uint32_t)m[i] << (8 * i); else hi |= (uint32_t)m[i] << (8 * (i - 4)); }
+        uint32_t *d = RGP(r, rt);
+        if (n == 1) { if (op == 0x20) { lo = (uint32_t)(int32_t)(int8_t)lo; hi = (int32_t)lo >> 31; } else hi = 0; }
+        else if (n == 2) { if (op == 0x21) { lo = (uint32_t)(int32_t)(int16_t)lo; hi = (int32_t)lo >> 31; } else hi = 0; }
+        else if (n == 4) { hi = op == 0x23 ? (uint32_t)((int32_t)lo >> 31) : 0; }
+        d[0] = lo; d[1] = hi;
+        return 1;
+    }
+    if (nullPage) return 1;   /* escrita na pagina 0: descarta */
+    {   /* escrita */
+        const uint32_t *sv = RGP(r, rt);
+        for (int i = 0; i < n; i++) m[i] = (uint8_t)((i < 4 ? sv[0] >> (8 * i) : sv[1] >> (8 * (i - 4))) & 0xFF);
+        return 1;
+    }
+}
+
+static int TryFixup(struct st_EE_RegFrame *r, int nullPage)
+{
+    uint32_t pc = r->epc, next = pc + 4, slot = pc;
+    if (r->cause & 0x80000000u)   /* excecao no delay slot: EPC aponta para o desvio */
+    {
+        if (!EvalBranch(r, pc, &next)) return 0;
+        slot = pc + 4;
+    }
+    if (!EmuMem(r, *(volatile uint32_t *)(uintptr_t)slot, nullPage)) return 0;
+    r->epc = next;
+    uint32_t k = sFixN++;
+    if (k < 8) { sFixPc[k] = slot; sFixAddr[k] = r->badvaddr; }
+    return 1;
 }
 
 static int OnException(struct st_EE_RegFrame *r)
 {
+    int code = (r->cause >> 2) & 0x1F;
+    if ((code == 4 || code == 5) && TryFixup(r, 0)) return 0;
+    /* ponteiro nulo (pagina 0): o GBA le a BIOS e nao acontece nada; o EE da TLB miss. Carga devolve 0, escrita e descartada. */
+    if ((code == 2 || code == 3) && r->badvaddr < 0x10000 && TryFixup(r, 1)) return 0;
+    sExc = 1;
     sSnap = *r;
     r->epc = (uint32_t)(uintptr_t)CrashScreen;
     r->sp[0] = (uint32_t)(uintptr_t)(sCrashStack + sizeof sCrashStack - 64);
@@ -128,6 +241,7 @@ static void ReportThread(void *arg)
     for (;;)
     {
         DelayThread(500000);
+        if (sExc) for (;;) SleepThread();   /* excecao: a tela dela fica */
         if (sHang) break;
 #if CRASHTEST
         { FILE *f = fopen("host:/tmp/ps2/crash_poll.txt", "w"); if (f) { fprintf(f, "beat=%u vbl=%u stall=%u\n", (unsigned)sBeat, (unsigned)sVbl, (unsigned)sStall); fclose(f); } }
@@ -139,6 +253,7 @@ static void ReportThread(void *arg)
 #if CRASHTEST
     { FILE *f = fopen("host:/tmp/ps2/crash.txt", "w"); if (f) { fprintf(f, "hang epc=%08x ra=%08x\n", (unsigned)sHangEpc, (unsigned)sHangRa); fclose(f); } }
 #endif
+    if (sExc) for (;;) SleepThread();
     /* sonda do CRTC (antes de init_scr): 1a fase so le o CSR; 2a limpa VSINT a cada 25 ms */
     uint32_t beat0 = sBeat, vbl0 = sVbl;
     int ro = 0, vs = 0, fl = 0, vb = 0; uint32_t f0 = (*(volatile uint32_t *)0x12001000 >> 13) & 1;
@@ -186,7 +301,7 @@ static void ReportThread(void *arg)
         for (int k = 0; k < 6; k++) scr_printf("%08X ", (unsigned)sPcRing[(sPcN - 1 - row * 6 - k) & 63]);
         scr_printf("\n");
     }
-    scr_printf("  D_STAT=%08X D_CTRL=%08X\n  Tire uma foto desta tela e envie.\n", (unsigned)R32(0x1000E010), (unsigned)R32(0x1000E000));
+    scr_printf("  D_STAT=%08X D_CTRL=%08X  FIXUPS=%u\n  Tire uma foto desta tela e envie.\n", (unsigned)R32(0x1000E010), (unsigned)R32(0x1000E000), (unsigned)sFixN);
     for (;;) SleepThread();
 }
 

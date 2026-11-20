@@ -61,6 +61,27 @@ static void RebuildObjAtlases(void)
     }
 }
 
+
+/* LUT[hf][banco][byte]: 2 pixels 4bpp (nibble baixo = 1o pixel) viram 2 bytes com banco*16 somado quando != 0.
+ * hf: ordem dos 2 pixels trocada (a ordem dos 4 bytes e invertida em ComposeTile). Montada sob demanda. */
+static uint16_t sLut4[2][16][256];
+static uint8_t sLut4Ok[2][16];
+static const uint16_t *Lut4(int bank, int hf)
+{
+    uint16_t *T = sLut4[hf][bank];
+    if (!sLut4Ok[hf][bank])
+    {
+        for (int b = 0; b < 256; b++)
+        {
+            int lo = b & 15, hi = b >> 4;
+            int a = lo ? bank * 16 + lo : 0, c = hi ? bank * 16 + hi : 0;
+            T[b] = hf ? (uint16_t)(c | (a << 8)) : (uint16_t)(a | (c << 8));
+        }
+        sLut4Ok[hf][bank] = 1;
+    }
+    return T;
+}
+
 static void ComposeTile(BgLayerCache *L, int charStart, int tx, int ty, uint16_t e)
 {
     int tile = e & 0x3FF, hf = (e >> 10) & 1, vf = (e >> 11) & 1, bank = e >> 12;
@@ -71,21 +92,27 @@ static void ComposeTile(BgLayerCache *L, int charStart, int tx, int ty, uint16_t
     if (addr + sz > 0x18000) { for (int y = 0; y < 8; y++) memset(dstBase + y * LAYER_STRIDE, 0, 8); *emp = 1; return; }
     const uint8_t *src = gGbaVram + addr;
     uint8_t any = 0;
+    if (!L->is8bpp)
+    {
+        /* 4bpp: tabelas (banco x byte) -> 2 pixels ja com o banco somado; 4 buscas por linha em vez de 8 pixels em laco */
+        const uint16_t *T = Lut4(bank, hf);
+        for (int y = 0; y < 8; y++)
+        {
+            uint32_t x = ((const uint32_t *)src)[vf ? 7 - y : y];
+            uint16_t *d = (uint16_t *)(dstBase + y * LAYER_STRIDE);
+            uint16_t p0 = T[x & 255], p1 = T[(x >> 8) & 255], p2 = T[(x >> 16) & 255], p3 = T[x >> 24];
+            if (hf) { d[0] = p3; d[1] = p2; d[2] = p1; d[3] = p0; }
+            else    { d[0] = p0; d[1] = p1; d[2] = p2; d[3] = p3; }
+            any |= (p0 | p1 | p2 | p3) != 0;
+        }
+        *emp = !any;
+        return;
+    }
     for (int y = 0; y < 8; y++)
     {
         int sy = vf ? 7 - y : y;
         uint8_t *d = dstBase + y * LAYER_STRIDE;
-        if (L->is8bpp)
-            for (int x = 0; x < 8; x++) { d[x] = src[sy * 8 + (hf ? 7 - x : x)]; any |= d[x]; }
-        else
-            for (int x = 0; x < 8; x++)
-            {
-                int px = hf ? 7 - x : x;
-                uint8_t b = src[sy * 4 + (px >> 1)];
-                int c = (px & 1) ? (b >> 4) : (b & 15);
-                d[x] = c ? bank * 16 + c : 0;
-                any |= d[x];
-            }
+        for (int x = 0; x < 8; x++) { d[x] = src[sy * 8 + (hf ? 7 - x : x)]; any |= d[x]; }
     }
     *emp = !any;
 }

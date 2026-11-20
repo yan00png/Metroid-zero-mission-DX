@@ -25,8 +25,7 @@ static int WsSafeScene(void)
     switch (gMainGameMode)
     {
     case 4:    /* GM_INGAME */
-    case 7:    /* GM_CHOZODIA_ESCAPE */
-    case 9:    /* GM_TOURIAN_ESCAPE */
+    /* GM_CHOZODIA_ESCAPE (7) e GM_TOURIAN_ESCAPE (9) sao so cenas fixas (fuga, nave, Zebes explodindo): sem widescreen */
     case 11:   /* GM_DEMO */
         /* pausa, item, mapa baixado e dica Chozo rodam dentro do INGAME; cutscene em andamento ou jogo ainda sem sala (submodo 0) tambem nao */
         gRenderIgc = gInGameCutscene[3] & 0x7F;

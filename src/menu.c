@@ -673,3 +673,52 @@ int MenuNes(const uint16_t *pix)
     }
     return res;
 }
+
+/* ---- escolha do idioma do jogo (depois de carregar a ROM): 0 = ENGLISH, 1 = PORTUGUES (BR). Lembra a ultima escolha. ---- */
+int gPtBr;   /* lido pelo jogo (text.c etc.): 1 = textos em portugues */
+#define LANG_CFG "save/lang.cfg"
+static int sLangSel;
+static void DrawLang(void)
+{
+    Rect(0, 0, 320, 224, 0x000000, 128);
+    const int px = 40, py = 50, pw = 240, ph = 124;
+    Rect(px - 2, py - 2, pw + 4, ph + 4, 0xFF6060, 128);
+    Rect(px, py, pw, ph, 0x301018, 128);
+    { const char *h = "LANGUAGE / IDIOMA"; Text(px + (pw - TextWidth(h, 2)) / 2, py + 8, 2, 0xFFD040, h); }
+    Rect(px + 10, py + 28, pw - 20, 1, 0xFF6060, 128);
+    static const char *lab[2] = { "ENGLISH", "PORTUGUES (BR)" };
+    for (int i = 0; i < 2; i++)
+    {
+        int y = py + 42 + i * 26;
+        Bar(px + 8, y, pw - 16, 17, i == sLangSel);
+        TextH(px + 26, y + 5, 3, 0xF0F0F0, lab[i]);
+    }
+    const char *f = "X: OK / CONFIRMAR";
+    Text(px + (pw - TextWidth(f, 1)) / 2, py + ph - 14, 1, 0x70FF90, f);
+}
+int MenuLanguage(void)
+{
+    uint8_t b[8]; sLangSel = 0;
+    int fd = StorageOpen(LANG_CFG, 0);
+    if (fd >= 0)
+    {
+        int n = StorageRead(fd, b, sizeof b); StorageClose(fd);
+        if (n >= 4 && b[0] == 'L' && b[1] == 'N' && b[2] == 'G' && b[3] <= 1) sLangSel = b[3];
+    }
+    BeSetUiHook(DrawLang);
+    uint16_t prev = 0xFFFF;
+    for (;;)
+    {
+        PlatformBeat(); RenderFrame();
+        uint16_t p = PlatformReadPad(), e = p & ~prev; prev = p;
+        if (e & ((1 << PB_UP) | (1 << PB_DOWN) | (1 << PB_LEFT) | (1 << PB_RIGHT))) sLangSel ^= 1;
+        if (e & (1 << PB_CROSS)) break;
+    }
+    BeSetUiHook(0);
+    gPtBr = sLangSel;
+    b[0] = 'L'; b[1] = 'N'; b[2] = 'G'; b[3] = (uint8_t)sLangSel;
+    StorageMkdir("save");
+    fd = StorageOpen(LANG_CFG, 1);
+    if (fd >= 0) { StorageWrite(fd, b, 4); StorageClose(fd); }
+    return sLangSel;
+}
